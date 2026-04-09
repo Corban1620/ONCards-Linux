@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+﻿﻿from __future__ import annotations
 
 from dataclasses import dataclass
 import html
@@ -6,6 +6,8 @@ from pathlib import Path
 import re
 import shutil
 import webbrowser
+import sys
+import subprocess
 
 from PySide6.QtCore import QEasingCurve, QPoint, QRect, Qt, QTimer, Signal, QVariantAnimation
 from PySide6.QtGui import QColor
@@ -523,9 +525,11 @@ class ModelInstallerPage(OnboardingPage):
         self.ollama_label.setObjectName("SmallMeta")
         self.ollama_label.setWordWrap(True)
         self.ollama_label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-        self.ollama_button = AnimatedButton("Open Ollama website")
+        
+        button_text = "Install Ollama" if sys.platform.startswith("linux") else "Open Ollama website"
+        self.ollama_button = AnimatedButton(button_text)
         self.ollama_button.setProperty("disablePressMotion", True)
-        self.ollama_button.clicked.connect(lambda: webbrowser.open("https://ollama.com/download"))
+        self.ollama_button.clicked.connect(self._handle_ollama_action)
         if self.ollama_installed:
             self.ollama_label.hide()
             self.ollama_button.hide()
@@ -614,8 +618,84 @@ class ModelInstallerPage(OnboardingPage):
         self.ollama_label.setVisible(not self.ollama_installed)
         self.ollama_button.setVisible(not self.ollama_installed)
 
+    def _handle_ollama_action(self) -> None:
+        if sys.platform.startswith("linux"):
+            self._install_ollama_linux()
+        else:
+            webbrowser.open("https://ollama.com/download")
+            
+    def _install_ollama_linux(self) -> None:
+        self.ollama_button.setEnabled(False)
+        self.ollama_button.setText("Installing...")
+        self.changed.emit()
+        
+        cmd = ["pkexec", "sh", "-c", "curl -fsSL https://ollama.com/install.sh | sh"]
+        try:
+            self._install_process = subprocess.Popen(cmd)
+            self._check_timer = QTimer(self)
+            self._check_timer.timeout.connect(self._check_ollama_install)
+            self._check_timer.start(2000)
+        except Exception as e:
+            QMessageBox.warning(self, "Install Failed", f"Could not launch installer.\nYou can install manually in terminal:\ncurl -fsSL https://ollama.com/install.sh | sh\n\nError: {e}")
+            self.ollama_button.setEnabled(True)
+            self.ollama_button.setText("Install Ollama")
+
+    def _check_ollama_install(self) -> None:
+        if hasattr(self, "_install_process") and self._install_process.poll() is not None:
+            self._check_timer.stop()
+            ollama_exists = (
+                shutil.which("ollama") is not None
+                or Path("/usr/local/bin/ollama").exists()
+                or Path("/usr/bin/ollama").exists()
+            )
+            if self._install_process.returncode == 0 or ollama_exists:
+                self.ollama_installed = True
+                self._refresh_copy()
+                self._check_existing_models()
+            else:
+                QMessageBox.warning(self, "Install Failed", "Ollama installation failed or was canceled.\nYou can also install manually in terminal:\ncurl -fsSL https://ollama.com/install.sh | sh")
+                self.ollama_button.setEnabled(True)
+                self.ollama_button.setText("Install Ollama")
+
     def selected_models(self) -> list[str]:
         return list(recommended_models_for_ram(self.ram_gb))
+
+    def on_enter(self) -> None:
+        self._check_existing_models()
+
+    def _check_existing_models(self) -> None:
+        if not self.ollama_installed:
+            return
+        try:
+            ollama_bin = shutil.which("ollama")
+            if not ollama_bin and Path("/usr/local/bin/ollama").exists():
+                ollama_bin = "/usr/local/bin/ollama"
+            if not ollama_bin and Path("/usr/bin/ollama").exists():
+                ollama_bin = "/usr/bin/ollama"
+            if not ollama_bin:
+                ollama_bin = "ollama"
+                
+            result = subprocess.run([ollama_bin, "list"], capture_output=True, text=True, check=False, timeout=3)
+            if result.returncode == 0:
+                output = result.stdout
+                lines = output.strip().split('\n')
+                installed_tag_names = [line.split()[0] for line in lines[1:] if line.strip()]
+                for key in self.last_selected or self.selected_models():
+                    spec = MODELS.get(key)
+                    if spec:
+                        tags = [spec.primary_tag] + list(spec.candidate_tags)
+                        if any(tag in installed_tag_names for tag in tags):
+                            self.installed_models[key] = True
+        except Exception:
+            pass
+
+        if self.can_continue():
+            self.install_button.setText("Models already installed")
+            self.install_button.setEnabled(False)
+            self.progress.setValue(100)
+            self.log.clear()
+            self._append_log("Detected existing required models. You can proceed.")
+        self.changed.emit()
 
     def _append_log(self, text: str) -> None:
         self.log.append(text)
@@ -1297,4 +1377,3 @@ class ProfileMakerDialog(QDialog):
 
     def profile_payload(self) -> dict:
         return self.profile_page.profile_payload()
-

@@ -10,7 +10,7 @@ Elevate your learning experience.
 - 16GB DDR4
 - RTX 2060 super
 
-⚠️ _The app doesn’t have a license yet. If Windows Defender shows a warning during installation, you can safely ignore it and continue._ ⚠️
+⚠️ _The app doesn’t have a license yet. If your distribution shows a warning during installation or execution, you can safely ignore it and continue._ ⚠️
 # What is ONCards?
  **ONCards — Opensource Neural-accellerated Cards**
 A fully offline study app with a virtual teacher and an algorithm which learns you as you go for better context and teach you better as you keep using the app.
@@ -19,7 +19,7 @@ A fully offline study app with a virtual teacher and an algorithm which learns y
 ### How to use it:
 - When the user opens the app, they will see the "create" tab.
 - You can write your question (from your notes or slides)
-- AI will complete the rest for you: title, hints, answer, difficulty, even the question location (eg: something related to "python language" will go to the "...\computer science\languages\Python..." path.
+- AI will complete the rest for you: title, hints, answer, difficulty, even the question location (eg: something related to "python language" will go to the ".../computer science/languages/Python..." path.
 - you can go over to the "Cards" tab and press "Start" or click on a card to start studying your subject. Make sure to be on the correct subject path when you want to study a specific subject.
 - You can write your answer (or reveal a hint if you are not sure)
 - Press "grade" to see a virtual teacher grading your answer in real time.
