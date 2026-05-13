@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import ctypes
 import sys
-from ctypes import wintypes
-
 
 DWMWA_WINDOW_CORNER_PREFERENCE = 33
 DWMWA_BORDER_COLOR = 34
@@ -12,11 +10,14 @@ DWMWCP_ROUND = 2
 DWMWCP_ROUNDSMALL = 3
 DWMWA_COLOR_NONE = 0xFFFFFFFE
 
-
-try:
-    _dwmapi = ctypes.WinDLL("dwmapi")
-except OSError:  # pragma: no cover
-    _dwmapi = None
+_dwmapi = None
+wintypes = None
+if sys.platform == "win32":
+    try:
+        from ctypes import wintypes
+        _dwmapi = ctypes.WinDLL("dwmapi")
+    except (ImportError, OSError, AttributeError):  # pragma: no cover
+        _dwmapi = None
 
 
 def polish_windows_window(
@@ -26,7 +27,7 @@ def polish_windows_window(
     small_corners: bool = False,
     remove_border: bool = True,
 ) -> None:
-    if sys.platform != "win32" or _dwmapi is None:
+    if sys.platform != "win32" or _dwmapi is None or wintypes is None:
         return
     try:
         hwnd = wintypes.HWND(int(widget.winId()))

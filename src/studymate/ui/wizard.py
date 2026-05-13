@@ -1,4 +1,4 @@
-﻿﻿from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import dataclass
 import html
@@ -597,8 +597,8 @@ class ModelInstallerPage(OnboardingPage):
             self.summary_label.setText("This device is below the minimum requirement for ONCard.")
             self.install_button.setEnabled(False)
         elif not self.ollama_installed:
-            self.summary_label.setText("Install Ollama first to unlock model downloads.")
-            self.install_button.setEnabled(False)
+            self.summary_label.setText("Click 'Install selected models' to automatically install Ollama and the models.")
+            self.install_button.setEnabled(True)
         elif self.ram_gb >= 23:
             self.summary_label.setText("Your device is eligible for full download.")
             self.install_button.setEnabled(True)
@@ -652,10 +652,16 @@ class ModelInstallerPage(OnboardingPage):
                 self.ollama_installed = True
                 self._refresh_copy()
                 self._check_existing_models()
+                if getattr(self, "_auto_continue_install", False):
+                    self._auto_continue_install = False
+                    self._ensure_ollama_server_running_and_install()
             else:
                 QMessageBox.warning(self, "Install Failed", "Ollama installation failed or was canceled.\nYou can also install manually in terminal:\ncurl -fsSL https://ollama.com/install.sh | sh")
                 self.ollama_button.setEnabled(True)
                 self.ollama_button.setText("Install Ollama")
+                if getattr(self, "_auto_continue_install", False):
+                    self._auto_continue_install = False
+                    self.install_button.setEnabled(True)
 
     def selected_models(self) -> list[str]:
         return list(recommended_models_for_ram(self.ram_gb))
@@ -717,7 +723,46 @@ class ModelInstallerPage(OnboardingPage):
         self.log.clear()
         self.install_button.setEnabled(False)
 
-        self.install_worker = ModelInstallWorker(selected, self.ollama)
+        if not self.ollama_installed:
+            self._append_log("Ollama is not installed. Installing Ollama...")
+            self._auto_continue_install = True
+            if sys.platform.startswith("linux"):
+                self._install_ollama_linux()
+            else:
+                self._append_log("Please install Ollama manually from https://ollama.com/download")
+                webbrowser.open("https://ollama.com/download")
+                self.install_button.setEnabled(True)
+            return
+
+        self._ensure_ollama_server_running_and_install()
+
+    def _ensure_ollama_server_running_and_install(self) -> None:
+        self._append_log("Checking Ollama server status...")
+        ollama_bin = shutil.which("ollama") or "/usr/local/bin/ollama"
+        if not Path(ollama_bin).exists() and Path("/usr/bin/ollama").exists():
+            ollama_bin = "/usr/bin/ollama"
+            
+        server_needs_start = False
+        try:
+            result = subprocess.run([ollama_bin, "list"], capture_output=True, text=True, timeout=5)
+            if "could not connect to ollama server" in result.stderr.lower() or result.returncode != 0:
+                server_needs_start = True
+        except Exception:
+            server_needs_start = True
+
+        if server_needs_start:
+            self._append_log("Ollama server is not running. Starting it in the background...")
+            try:
+                subprocess.Popen([ollama_bin, "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                QTimer.singleShot(2500, self._start_model_install_worker)
+                return
+            except Exception as e:
+                self._append_log(f"Warning: Failed to start Ollama server: {e}")
+                
+        self._start_model_install_worker()
+
+    def _start_model_install_worker(self) -> None:
+        self.install_worker = ModelInstallWorker(self.last_selected, self.ollama)
         self.install_worker.line.connect(self._append_log)
         self.install_worker.model_finished.connect(self._on_model_finished)
         self.install_worker.complete.connect(self._on_install_complete)

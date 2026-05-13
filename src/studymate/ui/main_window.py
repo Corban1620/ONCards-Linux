@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from PySide6.QtCore import QEvent, QParallelAnimationGroup, QPoint, QPropertyAnimation, QRect, QSize, Qt, QEasingCurve, QUrl, QTimer, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QGuiApplication, QIcon, QMouseEvent, QPainter, QPainterPath, QPixmap, QShowEvent
 from PySide6.QtWidgets import (
@@ -360,7 +361,8 @@ class MainWindow(QMainWindow):
         self._close_anim: QParallelAnimationGroup | None = None
         self.setWindowTitle("ONCard")
         self.setObjectName("OnCardMainWindow")
-        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
+        if not sys.platform.startswith("linux"):
+            self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.setMinimumSize(760, 540)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
         self._apply_initial_geometry()
@@ -483,6 +485,10 @@ class MainWindow(QMainWindow):
         self.close_btn = self._build_window_button("close", "Close", self.close, close_role=True)
         right_layout.addWidget(self.close_btn, 0, Qt.AlignmentFlag.AlignRight)
         title_layout.addWidget(right_cluster, 0, Qt.AlignmentFlag.AlignRight)
+
+        if sys.platform.startswith("linux"):
+            separator.hide()
+            right_cluster.hide()
 
         layout.addWidget(self.title_bar)
 
@@ -630,6 +636,14 @@ class MainWindow(QMainWindow):
         self._switch_tab(index)
 
     def _toggle_maximize_restore(self) -> None:
+        if sys.platform.startswith("linux"):
+            if self.isMaximized():
+                self.showNormal()
+            else:
+                self.showMaximized()
+            self._sync_window_controls()
+            return
+
         if self.isMaximized():
             self.showNormal()
         if self._pseudo_maximized:
@@ -693,7 +707,7 @@ class MainWindow(QMainWindow):
 
     def changeEvent(self, event) -> None:
         if event.type() == QEvent.Type.WindowStateChange:
-            if self.isMaximized() and not self._pseudo_maximized:
+            if not sys.platform.startswith("linux") and self.isMaximized() and not self._pseudo_maximized:
                 self.showNormal()
                 self._apply_pseudo_maximize()
                 return
@@ -750,6 +764,9 @@ class MainWindow(QMainWindow):
         self._sizing_pseudo = False
 
     def _minimize_with_animation(self) -> None:
+        if sys.platform.startswith("linux"):
+            self.showMinimized()
+            return
         if self._opacity_anim is None:
             self._opacity_anim = QPropertyAnimation(self, b"windowOpacity", self)
             self._opacity_anim.setDuration(_motion_duration(140))
@@ -768,6 +785,9 @@ class MainWindow(QMainWindow):
         if self._closing:
             return
         self._closing = True
+        if sys.platform.startswith("linux"):
+            QMainWindow.close(self)
+            return
         start_geom = self.geometry()
         scale = 0.92
         end_w = max(int(start_geom.width() * scale), 200)
@@ -805,6 +825,9 @@ class MainWindow(QMainWindow):
         group.start()
 
     def _apply_pseudo_maximize(self) -> None:
+        if sys.platform.startswith("linux"):
+            self.showMaximized()
+            return
         screen = QGuiApplication.screenAt(self.frameGeometry().center()) or QGuiApplication.primaryScreen()
         if screen is None:
             return
