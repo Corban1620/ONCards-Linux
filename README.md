@@ -1,7 +1,7 @@
-### Note: ONCards for Linux is still in early development and testing phases
-### Note: ONCards for Linux may be slightly out of date with the original ONCards Repository.
+#### Note: ONCards for Linux is still in early development and testing phases. in the event you are to encounter a bug please notify me via GitHub Issue
+#### Note: ONCards for Linux may be slightly out of date with the original ONCards Repository (@ https://github.com/MightyXdash/ONCard)
 ---
-# ONCards
+# ONCards For Linux.
 Elevate your learning experience.
 
 <img width="1280" height="720" alt="Untitled" src="https://github.com/user-attachments/assets/ef66e9e1-5729-424d-898e-691a490336b0" />
