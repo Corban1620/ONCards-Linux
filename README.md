@@ -1,3 +1,6 @@
+### Note: ONCards for Linux is still in early development and testing phases
+### Note: ONCards for Linux may be slightly out of date with the original ONCards Repository.
+---
 # ONCards
 Elevate your learning experience.
 
