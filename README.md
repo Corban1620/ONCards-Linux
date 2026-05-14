@@ -1,7 +1,10 @@
-### Note: ONCards for Linux is still in early development and testing phases
-### Note: ONCards for Linux may be slightly out of date with the original ONCards Repository.
+### Current Version: 1.2.6
+
+#### Note: ONCards for Linux is still in early development and testing phases. In the event you are to encounter a bug please notify me via GitHub Issues
+#### Note: ONCards for Linux may be slightly out of date with the original ONCards Repository:
+#### https://github.com/MightyXdash/ONCard
 ---
-# ONCards
+# ONCards For Linux.
 Elevate your learning experience.
 
 <img width="1280" height="720" alt="Untitled" src="https://github.com/user-attachments/assets/ef66e9e1-5729-424d-898e-691a490336b0" />
@@ -29,11 +32,18 @@ A fully offline study app with a virtual teacher and an algorithm which learns y
 - if you want help, just type a follow-up question and press enter for the teacher to explain it to you.
 
 <details>
-<summary><strong>🚀 Features for the Next Updates</strong></summary>
+<summary><strong>🚀 Features for the Next Updates & How to install.</strong></summary>
 
 > Ongoing improvements focused on introducing practical features and reducing overall application size for better performance and accessibility.
 
+### How to Install:
 
+- Download the latest version from GitHub Releases.
+- Navigate to where you downloaded it to (`cd Downloads`).
+- Extract the tarball (`tar -xf ONCard-Linux-PUT.VERSION.HERE.tar.gz`).
+- Navigate to the extracted folder (`cd ONCard`).
+- Create a shortcut (`./install.sh`).
+- Run via the shortcut in your start menu. If using terminal: `./ONCard`.
 
 ### 🔴 Important
 
@@ -65,8 +75,8 @@ A fully offline study app with a virtual teacher and an algorithm which learns y
 # Citation:
 If you are using my code or elements from this project, please cite:
 ```
-@MightyXdash/ONCard, 2026
-https://github.com/MightyXdash/ONCard
+@Corban1620/ONCards-Linux, 2026
+https://github.com/Corban1620/ONCards-Linux
 ```
 Thanks for using my app🤗.
 Love to the opensource community🥰.
