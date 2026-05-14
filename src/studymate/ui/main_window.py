@@ -83,8 +83,8 @@ class AppIconMenu(QWidget):
     account_selected = Signal(str)
 
     LINKS = (
-        ("ONCard", "https://github.com/MightyXdash/ONCard"),
-        ("Releases", "https://github.com/MightyXdash/ONCard/releases"),
+        ("ONCard", "https://github.com/Corban1620/ONCards-Linux"),
+        ("Releases", "https://github.com/Corban1620/ONCards-Linux/releases"),
         ("Ollama", "https://ollama.com/search"),
         ("Gemma3", "https://ollama.com/library/gemma3"),
         ("NomicEmbed", "https://ollama.com/library/nomic-embed-text-v2-moe"),

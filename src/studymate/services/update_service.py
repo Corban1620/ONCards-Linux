@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import subprocess
 from urllib.parse import urlparse
+import sys
 
 from packaging.version import InvalidVersion, Version
 import requests
@@ -13,6 +14,8 @@ import requests
 from studymate.services.update_notes import parse_update_notes
 from studymate.utils.paths import AppPaths
 from studymate.version import GITHUB_RELEASES_API, INSTALLER_NAME_PREFIX
+
+GITHUB_RELEASES_API = "https://api.github.com/repos/Corban1620/ONCards-Linux/releases/latest"
 
 
 class UpdateError(RuntimeError):
@@ -83,6 +86,7 @@ class UpdateService:
         )
 
     def _pick_installer_asset(self, assets: list[dict]) -> dict | None:
+        target_ext = ".tar.gz" if sys.platform.startswith("linux") else ".exe"
         for asset in assets:
             if not isinstance(asset, dict):
                 continue
@@ -90,7 +94,7 @@ class UpdateService:
             asset_url = str(asset.get("browser_download_url", "")).strip()
             if not name or not self._is_valid_download_url(asset_url):
                 continue
-            if name.lower().endswith(".exe") and INSTALLER_NAME_PREFIX.lower() in name.lower():
+            if name.lower().endswith(target_ext) and INSTALLER_NAME_PREFIX.lower() in name.lower():
                 return asset
         for asset in assets:
             if not isinstance(asset, dict):
@@ -99,7 +103,7 @@ class UpdateService:
             asset_url = str(asset.get("browser_download_url", "")).strip()
             if not name or not self._is_valid_download_url(asset_url):
                 continue
-            if name.lower().endswith(".exe"):
+            if name.lower().endswith(target_ext):
                 return asset
         return None
 
@@ -216,6 +220,23 @@ class UpdateService:
             return
 
     def create_post_exit_launcher(self, installer_path: Path, current_pid: int, *, silent: bool = False) -> Path:
+        if sys.platform.startswith("linux"):
+            launcher_path = self.paths.updates / "run_update.sh"
+            launcher_path.parent.mkdir(parents=True, exist_ok=True)
+            log_path = self.paths.runtime / "update_launcher.log"
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            app_dir = self.paths.install_root
+            script = "\n".join([
+                "#!/bin/bash",
+                f"sleep 2",
+                f"echo 'Extracting update...' >> \"{log_path}\"",
+                f"tar -xzf \"{installer_path}\" -C \"{app_dir}\" --strip-components=1 >> \"{log_path}\" 2>&1",
+                f"\"{app_dir}/ONCard\" &"
+            ])
+            launcher_path.write_text(script, encoding="utf-8")
+            launcher_path.chmod(0o755)
+            return launcher_path
+
         launcher_path = self.paths.updates / "run_update.ps1"
         launcher_path.parent.mkdir(parents=True, exist_ok=True)
         log_path = self.paths.runtime / "update_launcher.log"
@@ -248,6 +269,13 @@ class UpdateService:
         return launcher_path
 
     def launch_helper(self, launcher_path: Path) -> None:
+        if sys.platform.startswith("linux"):
+            try:
+                subprocess.Popen([str(launcher_path)], cwd=str(launcher_path.parent))
+                return
+            except OSError as exc:
+                raise UpdateError(f"Could not launch updater helper: {exc}") from exc
+
         try:
             subprocess.Popen(
                 ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(launcher_path)],

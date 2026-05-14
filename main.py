@@ -6,7 +6,10 @@ import traceback
 
 def _write_startup_log(message: str) -> None:
     try:
-        local_appdata = Path(os.getenv("LOCALAPPDATA", str(Path.home() / "AppData" / "Local")))
+        if sys.platform.startswith("linux"):
+            local_appdata = Path(os.getenv("XDG_DATA_HOME", str(Path.home() / ".local" / "share")))
+        else:
+            local_appdata = Path(os.getenv("LOCALAPPDATA", str(Path.home() / "AppData" / "Local")))
         log_dir = local_appdata / "ONCard" / "runtime"
         log_dir.mkdir(parents=True, exist_ok=True)
         log_path = log_dir / "startup_error.log"

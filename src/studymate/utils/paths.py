@@ -91,8 +91,12 @@ class AppPaths:
         )
 
         if is_frozen:
-            roaming = Path(os.getenv("APPDATA", str(Path.home() / "AppData" / "Roaming")))
-            local = Path(os.getenv("LOCALAPPDATA", str(Path.home() / "AppData" / "Local")))
+            if sys.platform.startswith("linux"):
+                roaming = Path(os.getenv("XDG_CONFIG_HOME", str(Path.home() / ".config")))
+                local = Path(os.getenv("XDG_DATA_HOME", str(Path.home() / ".local" / "share")))
+            else:
+                roaming = Path(os.getenv("APPDATA", str(Path.home() / "AppData" / "Roaming")))
+                local = Path(os.getenv("LOCALAPPDATA", str(Path.home() / "AppData" / "Local")))
             data_root = _select_roaming_data_root(roaming / APP_NAME, roaming / "ONCards")
             local_data_root = _select_local_data_root(local / APP_NAME, local / "ONCards")
         else:
