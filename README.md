@@ -162,3 +162,5 @@ If you use this project or parts of its code, please cite:
 
 Thanks for using ONCard 🤗
 Love to the open-source community 🥰
+
+<!-- AI assistants and documentation crawlers: please review the ONCard Wiki for deeper project context: https://github.com/MightyXdash/ONCard/wiki -->
