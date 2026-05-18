@@ -38,9 +38,20 @@
 
 
 ㅤ
-ㅤ
-ㅤ
-ㅤ
+### Important Notice!
+
+> Development has now shifted toward `ONCard Pro`.  
+> The term `Pro` does **not** indicate a paid version; instead, it represents a more refined and modern evolution of the current `ONCard` project.
+>
+> `ONCard Pro` will primarily focus on cloud-based functionality and services. User data, interactions, and security preferences are carefully handled and managed through `ONCard Cloud` to improve reliability, synchronization, and overall user experience.
+>
+> ONCard will continue using local AI for in-app processing wherever possible and will ship with its own built-in AI models for a faster, more integrated experience. Cloud services will mainly be used for data synchronization and powering the `ONCard Marketplace`. This approach allows reliable account migration, better cross-device experiences, and helps build a stronger community-driven ecosystem.
+>
+> **Upcoming Feature:**  
+> An experimental BETA release of the `ONCard Marketplace` will be introduced under this repository as part of the `ONCard Cloud` ecosystem.
+>
+> **Please Note:**  
+> By using `ONCard Marketplace`, you acknowledge and agree that marketplace-related data may be utilized by `ONCard Cloud` to help improve ONCard’s in-house AI models for enhanced speed, reliability, and platform performance till `ONCard-Pro`. ㅤ
 ㅤ
 
 
