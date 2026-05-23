@@ -4934,7 +4934,7 @@ class SettingsDialog(QDialog):
         self._register_settings_search_target("audio.transition_sound", tab_key="audio", scroll=None, widget=self.transition_sound_combo)
 
         self.notification_sound_combo = PopupMenuComboBox()
-        self.notification_sound_combo.addItem("Default Windows", "windows")
+        self.notification_sound_combo.addItem("Default System", "windows")
         self.notification_sound_combo.addItem("Notify 1", "notify1")
         self.notification_sound_combo.addItem("Notify 2", "notify2")
         self.notification_sound_combo.set_popup_handler(

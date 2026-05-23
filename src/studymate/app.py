@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -33,6 +34,35 @@ from studymate.workers.install_worker import ModelInstallWorker
 from studymate.workers.startup_warmup_worker import StartupWarmupWorker
 from studymate.workers.update_check_worker import UpdateCheckWorker
 from studymate.workers.update_download_worker import UpdateDownloadWorker
+
+
+def _ensure_ollama_server_running(ollama: OllamaService) -> None:
+    if shutil.which("ollama") is not None:
+        try:
+            ollama.installed_tags(use_cloud=False)
+        except Exception:
+            startupinfo = None
+            if os.name == "nt":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = 0
+            try:
+                subprocess.Popen(
+                    ["ollama", "serve"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    startupinfo=startupinfo,
+                )
+                # Wait up to 3 seconds for the server to spin up and bind to the port
+                for _ in range(6):
+                    time.sleep(0.5)
+                    try:
+                        ollama.installed_tags(use_cloud=False)
+                        break
+                    except Exception:
+                        pass
+            except Exception:
+                pass
 
 
 class RoundedTopBanner(QLabel):
@@ -419,7 +449,10 @@ class SessionController:
             splash = StartupSplash(video_path=self.paths.startup_video, app_icon=app_icon if app_icon.exists() else None)
             splash.show()
             self.app.processEvents()
+            _ensure_ollama_server_running(self.ollama)
             _run_startup_warmup(self.app, splash, self.datastore, self.preflight)
+        else:
+            _ensure_ollama_server_running(self.ollama)
 
         if not bool(setup.get("onboarding_complete", False)):
             wizard = OnboardingWizard(

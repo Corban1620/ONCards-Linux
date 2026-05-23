@@ -28,8 +28,11 @@ class _MARGINS(ctypes.Structure):
 
 
 try:
-    _dwmapi = ctypes.WinDLL("dwmapi")
-except OSError:  # pragma: no cover
+    if sys.platform == "win32":
+        _dwmapi = ctypes.WinDLL("dwmapi")
+    else:
+        _dwmapi = None
+except (OSError, AttributeError):  # pragma: no cover
     _dwmapi = None
 
 
