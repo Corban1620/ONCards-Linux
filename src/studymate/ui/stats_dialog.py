@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import re
 import shutil
+import sys
 
 from PySide6.QtCore import QEasingCurve, QPointF, Property, QPropertyAnimation, QRectF, QSize, Qt, QUrl, QVariantAnimation, QTimer
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QIcon, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap
@@ -29,6 +30,7 @@ from studymate.services.stats_service import RANGE_CONFIGS, StatsService
 from studymate.ui.animated import AnimatedComboBox, polish_surface
 from studymate.utils.markdown import markdown_to_html
 from studymate.workers.stats_summary_worker import StatsSummaryWorker
+from studymate.ui.window_effects import setup_frameless_resize_grips, update_frameless_resize_grips
 
 
 class GradientGlowLabel(QWidget):
@@ -383,7 +385,8 @@ class StatsDialog(QDialog):
 
         self.setWindowTitle("View stats")
         self.setObjectName("StatsDialog")
-        self.setWindowFlags(self.windowFlags() | Qt.WindowType.FramelessWindowHint)
+        if sys.platform == "win32":
+            self.setWindowFlags(self.windowFlags() | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self._apply_initial_geometry()
         self._build_ui()
@@ -446,6 +449,8 @@ class StatsDialog(QDialog):
         shadow.setBlurRadius(56)
         shadow.setOffset(0, 0)
         shadow.setColor(QColor(15, 37, 57, 78))
+        if sys.platform != "win32":
+            shadow.setEnabled(False)
         self.surface.setGraphicsEffect(shadow)
         polish_surface(self.surface)
         frame = QVBoxLayout(self.surface)
@@ -600,6 +605,8 @@ class StatsDialog(QDialog):
 
         root.addWidget(self.surface, 1)
 
+        self._resize_grips = setup_frameless_resize_grips(self)
+
     def _close_icon(self) -> QIcon:
         if self.close_icon_path is not None and self.close_icon_path.exists():
             return QIcon(str(self.close_icon_path))
@@ -610,6 +617,11 @@ class StatsDialog(QDialog):
             if path.exists():
                 return QIcon(str(path))
         return QIcon()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        if hasattr(self, "_resize_grips"):
+            update_frameless_resize_grips(self._resize_grips, self, False)
 
     def _animate_intro(self) -> None:
         return

@@ -8,6 +8,7 @@ import shutil
 import tempfile
 import threading
 import webbrowser
+import sys
 from typing import Any
 
 from PySide6.QtCore import QEasingCurve, QElapsedTimer, QEvent, QPoint, QPropertyAnimation, QRect, QRectF, QSignalBlocker, QSize, Qt, QTimer, QUrl
@@ -73,7 +74,7 @@ from studymate.services.settings_search_service import SettingsSearchService
 from studymate.theme import is_dark_theme, normalize_theme_mode, theme_tokens
 from studymate.ui.animated import AnimatedComboBox, AnimatedLineEdit, polish_surface
 from studymate.ui.wizard import FieldBlock, GenderPickerDialog, GradePickerDialog, PlaceholderComboBox
-from studymate.ui.window_effects import polish_popup_window, polish_windows_window
+from studymate.ui.window_effects import polish_popup_window, polish_windows_window, setup_frameless_resize_grips, update_frameless_resize_grips
 from studymate.workers.install_worker import ModelInstallWorker
 from studymate.workers.mcq_worker import MCQBulkWorker
 
@@ -1957,9 +1958,10 @@ class SettingsDialog(QDialog):
         self._settings_search_blur_timer.timeout.connect(self._hide_settings_search_dropdown_if_unfocused)
 
         self.setWindowTitle("Settings")
-        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
+        if sys.platform == "win32":
+            self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
+            self.setWindowFlag(Qt.WindowType.MSWindowsFixedSizeDialogHint, True)
         self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, False)
-        self.setWindowFlag(Qt.WindowType.MSWindowsFixedSizeDialogHint, True)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setObjectName("SettingsDialog")
         self.setModal(True)
@@ -2166,6 +2168,8 @@ class SettingsDialog(QDialog):
         if self._auto_install_model_key:
             QTimer.singleShot(0, self._run_deferred_auto_install)
 
+        self._resize_grips = setup_frameless_resize_grips(self)
+
     @staticmethod
     def _settings_surface_colors() -> dict[str, str]:
         if is_dark_theme():
@@ -2272,6 +2276,8 @@ class SettingsDialog(QDialog):
         shell_shadow.setBlurRadius(50)
         shell_shadow.setOffset(0, 0)
         shell_shadow.setColor(QColor(15, 23, 42, 90))
+        if sys.platform != "win32":
+            shell_shadow.setEnabled(False)
         shell_surface.setGraphicsEffect(shell_shadow)
         self._shell_surface = shell_surface
         root.addWidget(shell_surface, 1)
@@ -2615,6 +2621,8 @@ class SettingsDialog(QDialog):
         super().resizeEvent(event)
         self._sync_settings_bordered_widget_heights()
         self._reposition_settings_search_dropdown()
+        if hasattr(self, "_resize_grips"):
+            update_frameless_resize_grips(self._resize_grips, self, False)
 
     def _disable_settings_motion_transforms(self) -> None:
         """Disable scale/lift/grow motion in Settings to prevent hover jitter."""

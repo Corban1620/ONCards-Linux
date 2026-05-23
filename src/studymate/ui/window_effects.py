@@ -4,8 +4,9 @@ import ctypes
 import sys
 from ctypes import wintypes
 
-from PySide6.QtCore import QEvent, QObject, Qt, QTimer
-from PySide6.QtGui import QColor, QPalette, QRegion
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer, QRect
+from PySide6.QtGui import QColor, QPalette, QRegion, QMouseEvent
+from PySide6.QtWidgets import QWidget
 
 
 DWMWA_WINDOW_CORNER_PREFERENCE = 33
@@ -34,6 +35,90 @@ try:
         _dwmapi = None
 except (OSError, AttributeError):  # pragma: no cover
     _dwmapi = None
+
+class FramelessResizeGrip(QWidget):
+    def __init__(self, parent: QWidget, edges: Qt.Edge) -> None:
+        super().__init__(parent)
+        self.edges = edges
+        self._start_pos = None
+        self._start_geom = None
+        if edges == (Qt.Edge.TopEdge | Qt.Edge.LeftEdge) or edges == (Qt.Edge.BottomEdge | Qt.Edge.RightEdge):
+            self.setCursor(Qt.CursorShape.SizeFDiagCursor)
+        elif edges == (Qt.Edge.TopEdge | Qt.Edge.RightEdge) or edges == (Qt.Edge.BottomEdge | Qt.Edge.LeftEdge):
+            self.setCursor(Qt.CursorShape.SizeBDiagCursor)
+        elif edges in (Qt.Edge.LeftEdge, Qt.Edge.RightEdge):
+            self.setCursor(Qt.CursorShape.SizeHorCursor)
+        else:
+            self.setCursor(Qt.CursorShape.SizeVerCursor)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            window = self.window()
+            self._start_pos = event.globalPosition().toPoint()
+            self._start_geom = window.frameGeometry()
+            handle = window.windowHandle() if window is not None else None
+            if handle is not None:
+                if handle.startSystemResize(self.edges):
+                    event.accept()
+                    return
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if event.buttons() & Qt.MouseButton.LeftButton and self._start_pos is not None:
+            delta = event.globalPosition().toPoint() - self._start_pos
+            window = self.window()
+            new_geom = QRect(self._start_geom)
+            if self.edges & Qt.Edge.LeftEdge:
+                new_geom.setLeft(min(self._start_geom.left() + delta.x(), self._start_geom.right() - window.minimumWidth()))
+            if self.edges & Qt.Edge.RightEdge:
+                new_geom.setRight(max(self._start_geom.right() + delta.x(), self._start_geom.left() + window.minimumWidth()))
+            if self.edges & Qt.Edge.TopEdge:
+                new_geom.setTop(min(self._start_geom.top() + delta.y(), self._start_geom.bottom() - window.minimumHeight()))
+            if self.edges & Qt.Edge.BottomEdge:
+                new_geom.setBottom(max(self._start_geom.bottom() + delta.y(), self._start_geom.top() + window.minimumHeight()))
+            window.setGeometry(new_geom)
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        self._start_pos = None
+        super().mouseReleaseEvent(event)
+
+def setup_frameless_resize_grips(widget: QWidget) -> list[FramelessResizeGrip]:
+    return []
+    grips = [
+        FramelessResizeGrip(widget, Qt.Edge.TopEdge),
+        FramelessResizeGrip(widget, Qt.Edge.BottomEdge),
+        FramelessResizeGrip(widget, Qt.Edge.LeftEdge),
+        FramelessResizeGrip(widget, Qt.Edge.RightEdge),
+        FramelessResizeGrip(widget, Qt.Edge.TopEdge | Qt.Edge.LeftEdge),
+        FramelessResizeGrip(widget, Qt.Edge.TopEdge | Qt.Edge.RightEdge),
+        FramelessResizeGrip(widget, Qt.Edge.BottomEdge | Qt.Edge.LeftEdge),
+        FramelessResizeGrip(widget, Qt.Edge.BottomEdge | Qt.Edge.RightEdge),
+    ]
+    for grip in grips:
+        grip.raise_()
+    return grips
+
+def update_frameless_resize_grips(grips: list[FramelessResizeGrip], widget: QWidget, maximized: bool = False) -> None:
+    if not grips:
+        return
+    thickness = 8
+    w, h = widget.width(), widget.height()
+    grips[0].setGeometry(thickness, 0, w - 2 * thickness, thickness)
+    grips[1].setGeometry(thickness, h - thickness, w - 2 * thickness, thickness)
+    grips[2].setGeometry(0, thickness, thickness, h - 2 * thickness)
+    grips[3].setGeometry(w - thickness, thickness, thickness, h - 2 * thickness)
+    grips[4].setGeometry(0, 0, thickness, thickness)
+    grips[5].setGeometry(w - thickness, 0, thickness, thickness)
+    grips[6].setGeometry(0, h - thickness, thickness, thickness)
+    grips[7].setGeometry(w - thickness, h - thickness, thickness, thickness)
+    for grip in grips:
+        grip.setVisible(not maximized)
+        grip.raise_()
 
 
 def _apply_popup_shell_chrome(widget, *, remove_border: bool = True) -> None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import sys
 
 from PySide6.QtCore import QEvent, QParallelAnimationGroup, QPoint, QPropertyAnimation, QRect, QSize, Qt, QEasingCurve, QUrl, QTimer, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QGuiApplication, QIcon, QImage, QKeySequence, QMouseEvent, QPainter, QPainterPath, QPixmap, QShortcut, QShowEvent
@@ -36,7 +37,7 @@ from studymate.ui.settings_dialog import SettingsDialog
 from studymate.ui.stats_dialog import StatsDialog
 from studymate.ui.study_tab import StudyTab
 from studymate.ui.windows_toast import set_windows_app_user_model_id, show_windows_toast
-from studymate.ui.window_effects import polish_popup_window, polish_windows_window
+from studymate.ui.window_effects import polish_popup_window, polish_windows_window, setup_frameless_resize_grips, update_frameless_resize_grips
 from studymate.version import app_name_with_release_channel
 
 
@@ -190,7 +191,10 @@ class AppIconMenu(QWidget):
 
         self._animation_group = QParallelAnimationGroup(self)
         self._animation_group.addAnimation(geometry_animation)
-        self._animation_group.addAnimation(opacity_animation)
+        if QGuiApplication.platformName() != "wayland":
+            self._animation_group.addAnimation(opacity_animation)
+        else:
+            self.setWindowOpacity(1.0)
         self._animation_group.start()
 
     def _open_url(self, url: str) -> None:
@@ -479,7 +483,10 @@ class UserProfileMenu(QWidget):
 
         self._animation_group = QParallelAnimationGroup(self)
         self._animation_group.addAnimation(geometry_animation)
-        self._animation_group.addAnimation(opacity_animation)
+        if QGuiApplication.platformName() != "wayland":
+            self._animation_group.addAnimation(opacity_animation)
+        else:
+            self.setWindowOpacity(1.0)
         self._animation_group.start()
 
     def _request_stats(self) -> None:
@@ -565,7 +572,10 @@ class NotificationsMenu(QWidget):
 
         self._animation_group = QParallelAnimationGroup(self)
         self._animation_group.addAnimation(geometry_animation)
-        self._animation_group.addAnimation(opacity_animation)
+        if QGuiApplication.platformName() != "wayland":
+            self._animation_group.addAnimation(opacity_animation)
+        else:
+            self.setWindowOpacity(1.0)
         self._animation_group.start()
 
 
@@ -660,7 +670,10 @@ class CreateModeMenu(QWidget):
 
         self._animation_group = QParallelAnimationGroup(self)
         self._animation_group.addAnimation(geometry_animation)
-        self._animation_group.addAnimation(opacity_animation)
+        if QGuiApplication.platformName() != "wayland":
+            self._animation_group.addAnimation(opacity_animation)
+        else:
+            self.setWindowOpacity(1.0)
         self._animation_group.start()
 
     def _request_question(self) -> None:
@@ -763,7 +776,10 @@ class QuickAddMenu(QWidget):
 
         self._animation_group = QParallelAnimationGroup(self)
         self._animation_group.addAnimation(geometry_animation)
-        self._animation_group.addAnimation(opacity_animation)
+        if QGuiApplication.platformName() != "wayland":
+            self._animation_group.addAnimation(opacity_animation)
+        else:
+            self.setWindowOpacity(1.0)
         self._animation_group.start()
 
     def _request_web_lesson(self) -> None:
@@ -1194,7 +1210,8 @@ class MainWindow(QMainWindow):
         self._close_anim: QParallelAnimationGroup | None = None
         self.setWindowTitle(app_name_with_release_channel("ONCard"))
         self.setObjectName("OnCardMainWindow")
-        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
+        if sys.platform == "win32":
+            self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
         self.setMinimumSize(760, 540)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
         self._apply_initial_geometry()
@@ -1341,6 +1358,12 @@ class MainWindow(QMainWindow):
         right_layout.addWidget(self.close_btn, 0, Qt.AlignmentFlag.AlignRight)
         title_layout.addWidget(right_cluster, 0, Qt.AlignmentFlag.AlignRight)
 
+        if sys.platform != "win32":
+            self.minimize_btn.hide()
+            self.max_restore_btn.hide()
+            self.close_btn.hide()
+            separator.hide()
+
         layout.addWidget(self.title_bar)
 
         self.stack = AnimatedStackedWidget()
@@ -1366,6 +1389,8 @@ class MainWindow(QMainWindow):
         self._sync_nav_icons()
         self._sync_window_controls()
         self._switch_tab(1)
+        
+        self._resize_grips = setup_frameless_resize_grips(self)
 
     def _position_stats_overlay(self) -> None:
         overlay = getattr(self, "_stats_overlay", None)
@@ -1624,6 +1649,14 @@ class MainWindow(QMainWindow):
         self._switch_tab(index)
 
     def _toggle_maximize_restore(self) -> None:
+        if sys.platform != "win32":
+            if self.isMaximized():
+                self.showNormal()
+            else:
+                self.showMaximized()
+            self._sync_window_controls()
+            return
+
         if self.isMaximized():
             self.showNormal()
         if self._pseudo_maximized:
@@ -1758,7 +1791,7 @@ class MainWindow(QMainWindow):
 
     def changeEvent(self, event) -> None:
         if event.type() == QEvent.Type.WindowStateChange:
-            if self.isMaximized() and not self._pseudo_maximized:
+            if self.isMaximized() and not self._pseudo_maximized and sys.platform == "win32":
                 self.showNormal()
                 self._apply_pseudo_maximize()
                 return
@@ -1795,6 +1828,9 @@ class MainWindow(QMainWindow):
         super().resizeEvent(event)
         self._position_stats_overlay()
         self._apply_native_window_chrome()
+        if hasattr(self, "_resize_grips"):
+            maximized = self.isMaximized() or self._pseudo_maximized
+            update_frameless_resize_grips(self._resize_grips, self, maximized)
 
     def showEvent(self, event: QShowEvent) -> None:
         super().showEvent(event)
@@ -1854,6 +1890,9 @@ class MainWindow(QMainWindow):
         self._sizing_pseudo = False
 
     def _minimize_with_animation(self) -> None:
+        if QGuiApplication.platformName() == "wayland":
+            self._finish_minimize()
+            return
         if self._opacity_anim is None:
             self._opacity_anim = QPropertyAnimation(self, b"windowOpacity", self)
             self._opacity_anim.setDuration(_motion_duration(140))
@@ -1898,7 +1937,8 @@ class MainWindow(QMainWindow):
 
         group = QParallelAnimationGroup(self)
         group.addAnimation(geo_anim)
-        group.addAnimation(opacity_anim)
+        if QGuiApplication.platformName() != "wayland":
+            group.addAnimation(opacity_anim)
 
         def _finish() -> None:
             self._close_anim = None
