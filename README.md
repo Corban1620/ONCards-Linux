@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">ONCard</h1>
+  <h1 align="center">ONCards for Linux.</h1>
   <p align="center">
     Fully offline AI-powered studying, flashcards, MCQs, and intelligent learning tools.
   </p>
@@ -51,7 +51,7 @@
 > An experimental BETA release of the `ONCard Marketplace` will be introduced under this repository as part of the `ONCard Cloud` ecosystem.
 >
 > **Please Note:**  
-> By using `ONCard Marketplace`, you acknowledge and agree that marketplace-related data may be utilized by `ONCard Cloud` to help improve ONCard’s in-house AI models for enhanced speed, reliability, and platform performance till `ONCard-Pro`. ㅤ
+> By using `ONCard Marketplace`, you acknowledge and agree that marketplace-related data may be utilized by `ONCard Cloud` to help improve ONCard’s in-house AI models for enhanced speed, reliability, and platform performance 'til `ONCard-Pro`. ㅤ
 ㅤ
 
 
@@ -128,8 +128,8 @@ These are the core features that make ONCard powerful for daily studying:
 ### Linux
 Use the Linux-specific version here: [ONCard-Linux](https://github.com/Corban1620/ONCard-Linux).
 
-## How to Use ONCard
-1. Open ONCard and go to the **Create** tab.
+## How to Use ONCards for Linux
+1. Open ONCards and go to the **Create** tab.
 2. Enter a question from your notes or slides.
 3. ONCard generates the rest automatically: title, hints, answer, difficulty, and suggested subject path.
 4. Go to the **Cards** tab and press **Start** (or click any card) to begin studying.
