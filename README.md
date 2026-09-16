@@ -1,3 +1,5 @@
+### Development for ONCards-Linux has been stopped as a newer release called ONCard Pro is coming. 
+---
 <p align="center">
   <h1 align="center">ONCards for Linux.</h1>
   <p align="center">
